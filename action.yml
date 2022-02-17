@@ -36,24 +36,15 @@ inputs:
         passing Cloud credentials - stored in the CI/CD platform - to Terraform
     required: false
     default: "-"
-  outputs-file:
-    description: |
-      Path to JSON file to receive the Cloudify environment's outputs
-      and capabilities
-    required: false
-    default: "-"
-  plan:
-    description: |
-      boolean flag to indicate whether to apply the module or just execute plan
-    required: false
-    default: "true"
 outputs:
   terraform-plan:
-    description: The Cloudify environment's outputs and capabilties
+    description: Terraform module plan
+    value: ${{ steps.get_terraform_plan.outputs.plan }}
 runs:
   using: "composite"
   steps:
     - name: Execute Terraform plan
+      id: 
       using: docker
       image: docker://ahmadiesa/cfyci:6.3.0
       entrypoint: cfyci
@@ -72,6 +63,51 @@ runs:
         - '--environment-mapping'
         - ${{ inputs.environment-mapping }}
         - '--outputs-file'
-        - ${{ inputs.outputs-file }}
+        - "env-plan-data.json"
         - '--plan'
-        - ${{ inputs.plan }}
+        - "true"
+        
+    - name: Get Deployment ID
+      id: get_deployment_id
+      run: |
+        content=`cat env-plan-data.json`
+        # the following lines are only required for multi line json
+        content="${content//'%'/'%25'}"
+        content="${content//$'\n'/'%0A'}"
+        content="${content//$'\r'/'%0D'}"
+        # end of optional handling for multi line json
+        echo "::set-output name=packageJson::$content"
+    - name: get cloud resource node instance id
+      if: ${{ steps.format_comment.outputs.command == 'terraform plan' }}
+      id: get_instance_id
+      uses: ahmadiesa-abu/cli-action@v1.0.1
+      with:
+        command: node-instances list -d ${{fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
+
+    - id: format_node_list
+      if: ${{ steps.format_comment.outputs.command == 'terraform plan' }}
+      name: format command output
+      shell: python
+      run: |
+        import json
+        cli_output = ${{steps.get_instance_id.outputs.cli-output}}
+        instance_id = json.loads(cli_output)[0]['id']
+        print ('::set-output name=instance-id::{0}'.format(instance_id))
+    - name: get cloud resource instane runtime properties
+      if: ${{ steps.format_comment.outputs.command == 'terraform plan' }}
+      id: get_node_instance_runtime
+      uses: ahmadiesa-abu/cli-action@v1.0.1
+      with:
+        command: node-instances get ${{ steps.format_node_list.outputs.instance-id }} --json
+        
+    - name: get cloud resource plan runtime property
+      id: get_terraform_plan
+      shell: python
+      run: |
+        import json
+        cli_output = ${{steps.get_node_instance_runtime.outputs.cli-output}}
+        pretty_plan = json.loads(cli_output)['runtime_properties']['pretty-plan']
+        pretty_plan = pretty_plan.replace('%','%25')
+        pretty_plan = pretty_plan.replace('\n','%0A')
+        pretty_plan = pretty_plan.replace('\r','%0D')
+        print ('::set-output name=plan::{0}'.format(pretty_plan))
