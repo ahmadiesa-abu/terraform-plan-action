@@ -44,7 +44,7 @@ runs:
   using: "composite"
   steps:
     - name: Execute Terraform plan
-      id: 
+      id: terraform_plan
       using: docker
       image: docker://ahmadiesa/cfyci:6.3.0
       entrypoint: cfyci
@@ -85,7 +85,6 @@ runs:
         command: node-instances list -d ${{fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
 
     - id: format_node_list
-      if: ${{ steps.format_comment.outputs.command == 'terraform plan' }}
       name: format command output
       shell: python
       run: |
@@ -94,7 +93,6 @@ runs:
         instance_id = json.loads(cli_output)[0]['id']
         print ('::set-output name=instance-id::{0}'.format(instance_id))
     - name: get cloud resource instane runtime properties
-      if: ${{ steps.format_comment.outputs.command == 'terraform plan' }}
       id: get_node_instance_runtime
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
