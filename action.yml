@@ -92,6 +92,7 @@ runs:
         import json
         cli_output = ${{steps.get_node_instance_runtime.outputs.cli-output}}
         pretty_plan = json.loads(cli_output)['runtime_properties']['pretty-plan']
+        print('pretty_plan {0}'.format(pretty_plan))
         pretty_plan = pretty_plan.replace('%','%25')
         pretty_plan = pretty_plan.replace('\n','%0A')
         pretty_plan = pretty_plan.replace('\r','%0D')
