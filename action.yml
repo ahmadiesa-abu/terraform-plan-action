@@ -47,23 +47,12 @@ runs:
       id: terraform_plan
       uses: ahmadiesa-abu/terraform-action@v1.1
       with:
-        - terraform
-        - '--name'
-        - ${{ inputs.environment-name }}
-        - '--module'
-        - ${{ inputs.module-file }}
-        - '--module-path'
-        - ${{ inputs.module-source-path }}
-        - '--variables'
-        - ${{ inputs.variables-file }}
-        - '--environment'
-        - ${{ inputs.environment-file }}
-        - '--environment-mapping'
-        - ${{ inputs.environment-mapping }}
-        - '--outputs-file'
-        - "env-plan-data.json"
-        - '--plan'
-        - "true"
+          environment-name: ${{ inputs.environment-name }}
+          module-file: ${{ inputs.module-file }}
+          module-source-path: ${{ inputs.module-source-path }}
+          variables-file: ${{ inputs.variables-file }}
+          outputs-file: "env-plan-data.json"
+          plan: "true"
         
     - name: Get Deployment ID
       id: get_deployment_id
