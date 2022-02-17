@@ -45,10 +45,8 @@ runs:
   steps:
     - name: Execute Terraform plan
       id: terraform_plan
-      using: docker
-      image: docker://ahmadiesa/cfyci:6.3.0
-      entrypoint: cfyci
-      args:
+      uses: ahmadiesa-abu/terraform-action@v1.1
+      with:
         - terraform
         - '--name'
         - ${{ inputs.environment-name }}
@@ -69,6 +67,7 @@ runs:
         
     - name: Get Deployment ID
       id: get_deployment_id
+      shell: bash
       run: |
         content=`cat env-plan-data.json`
         # the following lines are only required for multi line json
@@ -78,7 +77,6 @@ runs:
         # end of optional handling for multi line json
         echo "::set-output name=packageJson::$content"
     - name: get cloud resource node instance id
-      if: ${{ steps.format_comment.outputs.command == 'terraform plan' }}
       id: get_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
