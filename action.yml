@@ -61,6 +61,7 @@ runs:
       shell: python
       run: |
         import io
+        import os
         import json
         import yaml
         environments = json.loads(r"""${{steps.check_environment.outputs.environment-data}}""")
