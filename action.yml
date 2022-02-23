@@ -180,7 +180,7 @@ runs:
  
     - name: get cloud resource instane runtime properties
       if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
-      id: get_node_instance_runtime
+      id: get_already_exists_node_instance_runtime
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
         command: node-instances get ${{ steps.format_already_exists_node_list.outputs.instance-id }} --json
@@ -205,7 +205,7 @@ runs:
       shell: python
       run: |
         import json
-        cli_output = ${{steps.get_node_instance_runtime.outputs.cli-output}}
+        cli_output = ${{steps.get_already_exists_node_instance_runtime.outputs.cli-output}}
         pretty_plan = json.loads(cli_output)['runtime_properties']['pretty-plan']
         print('pretty_plan {0}'.format(pretty_plan))
         pretty_plan = pretty_plan.replace('%','%25')
