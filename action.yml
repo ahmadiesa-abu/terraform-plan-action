@@ -101,7 +101,7 @@ runs:
           print ('::set-output name=exists::"{0}"'.format(False))
           
     - name: Execute Terraform plan
-      if: ${{ steps.check_if_deployment_exists.outputs.exists != "True" }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
       id: terraform_plan
       uses: ahmadiesa-abu/terraform-action@v1.1
       with:
@@ -113,7 +113,7 @@ runs:
           plan: "true"
     
     - name: Execute Terraform plan workflow
-      if: ${{ steps.check_if_deployment_exists.outputs.exists == "True" }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'True' }}
       id: terraform_plan_wf
       uses: cloudify-cosmo/execute-workflow-action@v1.1
       with:
@@ -123,7 +123,7 @@ runs:
       
         
     - name: Get Deployment ID
-      if: ${{ steps.check_if_deployment_exists.outputs.exists != "True" }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
       id: get_deployment_id
       shell: bash
       run: |
@@ -136,14 +136,14 @@ runs:
         echo "::set-output name=packageJson::$content"
     
     - name: get cloud resource node instance id
-      if: ${{ steps.check_if_deployment_exists.outputs.exists != "True" }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
       id: get_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
         command: node-instances list -d ${{fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
 
     - name: get cloud resource node instance id
-      if: ${{ steps.check_if_deployment_exists.outputs.exists == "True" }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'True' }}
       id: get_already_installed_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
@@ -154,7 +154,7 @@ runs:
       shell: python
       run: |
         import json
-        if ${{ steps.check_if_deployment_exists.outputs.exists}} != "True":
+        if ${{ steps.check_if_deployment_exists.outputs.exists}} != 'True':
           cli_output = "${{steps.get_instance_id.outputs.cli-output}}"
         else:
           cli_output = "${{steps.get_already_installed_instance_id.outputs.cli-output}}"
