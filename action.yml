@@ -63,7 +63,7 @@ runs:
         import io
         import json
         import yaml
-        environments = json.loads(${{steps.check_environment.outputs.environment-data}})
+        environments = json.loads("${{steps.check_environment.outputs.environment-data}}")
         if len(environments)!=0:
           print ('::set-output name=exists::{0}'.format(True))
           print ('::set-output name=deployment_id::{0}'.format(environments[0].get('deployment_id')))
@@ -89,8 +89,8 @@ runs:
             
           workflow_parms = {
             'node_ids': ['terraform_module'],
-            'source': ${{ inputs.module-file }},
-            'source_path': ${{ inputs.module-source-path }},
+            'source': "${{ inputs.module-file }}",
+            'source_path': "${{ inputs.module-source-path }}",
             'variables': variables,
             'environment_variables': environment_variables
           }
