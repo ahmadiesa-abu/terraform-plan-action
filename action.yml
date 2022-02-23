@@ -66,7 +66,8 @@ runs:
         import yaml
         environments = json.loads(r"""${{steps.check_environment.outputs.environment-data}}""")
         if len(environments)!=0:
-          print ('::set-output name=exists::"{0}"'.format(True))
+          print('exists')
+          print ('::set-output name=exists::{0}'.format('true'))
           print ('::set-output name=deployment_id::{0}'.format(environments[0].get('deployment_id')))
           
           variables = "${{ inputs.variables-file }}"
@@ -102,7 +103,7 @@ runs:
           print ('::set-output name=exists::"{0}"'.format(False))
           
     - name: Execute Terraform plan
-      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       id: terraform_plan
       uses: ahmadiesa-abu/terraform-action@v1.1
       with:
@@ -114,7 +115,7 @@ runs:
           plan: "true"
     
     - name: Execute Terraform plan workflow
-      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'True' }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
       id: terraform_plan_wf
       uses: cloudify-cosmo/execute-workflow-action@v1.1
       with:
@@ -124,7 +125,7 @@ runs:
       
         
     - name: Get Deployment ID
-      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       id: get_deployment_id
       shell: bash
       run: |
@@ -137,14 +138,14 @@ runs:
         echo "::set-output name=packageJson::$content"
     
     - name: get cloud resource node instance id
-      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       id: get_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
         command: node-instances list -d ${{fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
 
     - name: get cloud resource node instance id
-      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'True' }}
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
       id: get_already_installed_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
@@ -155,10 +156,10 @@ runs:
       shell: python
       run: |
         import json
-        if ${{ steps.check_if_deployment_exists.outputs.exists}} != 'True':
-          cli_output = "${{steps.get_instance_id.outputs.cli-output}}"
+        if ${{ steps.check_if_deployment_exists.outputs.exists}} != 'true':
+          cli_output = ${{steps.get_instance_id.outputs.cli-output}} or ""
         else:
-          cli_output = "${{steps.get_already_installed_instance_id.outputs.cli-output}}"
+          cli_output = ${{steps.get_already_installed_instance_id.outputs.cli-output}} or ""
         instance_id = json.loads(cli_output)[0]['id']
         print ('::set-output name=instance-id::{0}'.format(instance_id))
     - name: get cloud resource instane runtime properties
