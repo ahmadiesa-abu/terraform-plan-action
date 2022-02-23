@@ -72,13 +72,13 @@ runs:
           if os.path.isfile(variables):
             with io.open(path, 'r', encoding='UTF-8') as f:
               variables = yaml.safe_load(f)
-           else:
+          else:
             variables = json.loads(variables)
           environment_variables = ${{ inputs.environment-file }}
           if os.path.isfile(environment_variables):
             with io.open(path, 'r', encoding='UTF-8') as f:
               environment_variables = yaml.safe_load(f)
-           else:
+          else:
             environment_variables = json.loads(variables)
           
             
