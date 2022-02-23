@@ -149,27 +149,59 @@ runs:
       id: get_already_installed_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
-        command: node-instances list -d steps.check_if_deployment_exists.outputs.deployment_id -n terraform_module --json
+        command: node-instances list -d ${{steps.check_if_deployment_exists.outputs.deployment_id}} -n terraform_module --json
 
     - id: format_node_list
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       name: format command output
       shell: python
       run: |
         import json
-        if ${{ steps.check_if_deployment_exists.outputs.exists}} != 'true':
-          cli_output = ${{steps.get_instance_id.outputs.cli-output}} or ""
-        else:
-          cli_output = ${{steps.get_already_installed_instance_id.outputs.cli-output}} or ""
+        cli_output = ${{steps.get_instance_id.outputs.cli-output}}
         instance_id = json.loads(cli_output)[0]['id']
         print ('::set-output name=instance-id::{0}'.format(instance_id))
+        
+    - id: format_already_exists_node_list
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
+      name: format command output
+      shell: python
+      run: |
+        import json
+        cli_output = ${{steps.get_already_installed_instance_id.outputs.cli-output}}
+        instance_id = json.loads(cli_output)[0]['id']
+        print ('::set-output name=instance-id::{0}'.format(instance_id))
+    
     - name: get cloud resource instane runtime properties
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       id: get_node_instance_runtime
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
         command: node-instances get ${{ steps.format_node_list.outputs.instance-id }} --json
+ 
+    - name: get cloud resource instane runtime properties
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
+      id: get_node_instance_runtime
+      uses: ahmadiesa-abu/cli-action@v1.0.1
+      with:
+        command: node-instances get ${{ steps.format_already_exists_node_list.outputs.instance-id }} --json
         
     - name: get cloud resource plan runtime property
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       id: get_terraform_plan
+      shell: python
+      run: |
+        import json
+        cli_output = ${{steps.get_node_instance_runtime.outputs.cli-output}}
+        pretty_plan = json.loads(cli_output)['runtime_properties']['pretty-plan']
+        print('pretty_plan {0}'.format(pretty_plan))
+        pretty_plan = pretty_plan.replace('%','%25')
+        pretty_plan = pretty_plan.replace('\n','%0A')
+        pretty_plan = pretty_plan.replace('\r','%0D')
+        print ('::set-output name=plan::{0}'.format(pretty_plan))
+    
+    - name: get cloud resource plan runtime property
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
+      id: get_already_exists_terraform_plan
       shell: python
       run: |
         import json
