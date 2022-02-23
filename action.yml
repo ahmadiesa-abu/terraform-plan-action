@@ -46,7 +46,7 @@ inputs:
 outputs:
   terraform-plan:
     description: Terraform module plan
-    value: ${{ steps.get_terraform_plan.outputs.plan }}
+    value: ${{ steps.get_terraform_plan.outputs.plan || steps.get_already_exists_terraform_plan.outputs.plan  }}
 runs:
   using: "composite"
   steps:
