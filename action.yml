@@ -1,5 +1,5 @@
-name: Create Terraform Plan
-description: Creates a Terraform environment and return the plan.
+name: Execute Terraform Plan
+description:  execute terraform plan on already created deployment , or create one if not exists.
 branding:
   icon: cloud
   color: white
@@ -36,6 +36,13 @@ inputs:
         passing Cloud credentials - stored in the CI/CD platform - to Terraform
     required: false
     default: "-"
+  labels:
+    description: |
+      A labels list of the form <key>:<value>,<key>:<value>. 
+      Any comma and colon in <value> must be escaped with \. 
+      The labels’ keys are saved in lowercase.
+    required: false
+    default: "-"
 outputs:
   terraform-plan:
     description: Terraform module plan
@@ -43,7 +50,53 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Check if environment exists
+      id: check_environment
+      uses: ahmadiesa-abu/environment-data-labels-action@v1.2
+      with:
+          environment-name: ${{ inputs.environment-name }}
+          labels: ${{ inputs.labels }}
+    - name: Set deployment exists
+      id: check_if_deployment_exists
+      shell: python
+      run: |
+        import io
+        import json
+        import yaml
+        environments = json.loads(${{steps.check_environment.outputs.environment-data}})
+        if len(environments)!=0:
+          print ('::set-output name=exists::{0}'.format(True))
+          print ('::set-output name=deployment_id::{0}'.format(environments[0].get('deployment_id')))
+          
+          variables = ${{ inputs.variables-file }}
+          if os.path.isfile(variables):
+            with io.open(path, 'r', encoding='UTF-8') as f:
+              variables = yaml.safe_load(f)
+           else:
+            variables = json.loads(variables)
+          environment_variables = ${{ inputs.environment-file }}
+          if os.path.isfile(environment_variables):
+            with io.open(path, 'r', encoding='UTF-8') as f:
+              environment_variables = yaml.safe_load(f)
+           else:
+            environment_variables = json.loads(variables)
+          
+            
+          workflow_parms = {
+            'node_ids': ['terraform_module'],
+            'source': ${{ inputs.module-file }},
+            'source_path': ${{ inputs.module-source-path }},
+            'variables': variables,
+            'environment_variables': environment_variables
+          }
+          
+          with open('workflow_params.yaml', 'w') as outfile:
+            yaml.dump(workflow_parms, outfile)
+        else:
+          print ('::set-output name=exists::{0}'.format(False))
+          
     - name: Execute Terraform plan
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
       id: terraform_plan
       uses: ahmadiesa-abu/terraform-action@v1.1
       with:
@@ -53,8 +106,19 @@ runs:
           variables-file: ${{ inputs.variables-file }}
           outputs-file: "env-plan-data.json"
           plan: "true"
+    
+    - name: Execute Terraform plan workflow
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'True' }}
+      id: terraform_plan_wf
+      uses: cloudify-cosmo/execute-workflow-action@v1.1
+      with:
+        environment-name: ${{ steps.check_if_deployment_exists.outputs.deployment_id }}
+        workflow: "terraform_plan"
+        parameters-file: 'workflow_params.yaml'
+      
         
     - name: Get Deployment ID
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
       id: get_deployment_id
       shell: bash
       run: |
@@ -65,18 +129,30 @@ runs:
         content="${content//$'\r'/'%0D'}"
         # end of optional handling for multi line json
         echo "::set-output name=packageJson::$content"
+    
     - name: get cloud resource node instance id
+      if: ${{ steps.check_if_deployment_exists.outputs.exists != 'True' }}
       id: get_instance_id
       uses: ahmadiesa-abu/cli-action@v1.0.1
       with:
         command: node-instances list -d ${{fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
+
+    - name: get cloud resource node instance id
+      if: ${{ steps.check_if_deployment_exists.outputs.exists == 'True' }}
+      id: get_already_installed_instance_id
+      uses: ahmadiesa-abu/cli-action@v1.0.1
+      with:
+        command: node-instances list -d steps.check_if_deployment_exists.outputs.deployment_id -n terraform_module --json
 
     - id: format_node_list
       name: format command output
       shell: python
       run: |
         import json
-        cli_output = ${{steps.get_instance_id.outputs.cli-output}}
+        if ${{ steps.check_if_deployment_exists.outputs.exists}} != "True":
+          cli_output = ${{steps.get_instance_id.outputs.cli-output}}
+        else:
+          cli_output = ${{steps.get_already_installed_instance_id.outputs.cli-output}}
         instance_id = json.loads(cli_output)[0]['id']
         print ('::set-output name=instance-id::{0}'.format(instance_id))
     - name: get cloud resource instane runtime properties
