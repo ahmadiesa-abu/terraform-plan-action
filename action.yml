@@ -112,6 +112,7 @@ runs:
           module-source-path: ${{ inputs.module-source-path }}
           variables-file: ${{ inputs.variables-file }}
           outputs-file: "env-plan-data.json"
+          labels: ${{ inputs.labels }}
           plan: "true"
     
     - name: Execute Terraform plan workflow
