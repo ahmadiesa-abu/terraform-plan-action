@@ -7,6 +7,9 @@ inputs:
   environment-name:
     description: Name of Cloudify environment to create
     required: true
+  environment-id:
+    description: Id of Cloudify environment to create
+    required: true
   module-file:
     description: URL/path to Terraform module archive
     required: true
@@ -52,7 +55,7 @@ runs:
   steps:
     - name: Check if environment exists
       id: check_environment
-      uses: ahmadiesa-abu/environment-data-labels-action@v1.2
+      uses: cloudify-cosmo/environment-data-using-labels-action@v1.2
       with:
           environment-name: ${{ inputs.environment-name }}
           labels: ${{ inputs.labels }}
@@ -65,7 +68,9 @@ runs:
         import json
         import yaml
         environments = json.loads(r"""${{steps.check_environment.outputs.environment-data}}""")
-        if len(environments)!=0:
+        if len(environments)==0:
+          print ('::set-output name=exists::{0}'.format('false'))
+        elif len(environments)==1:
           print('exists')
           print ('::set-output name=exists::{0}'.format('true'))
           print ('::set-output name=deployment_id::{0}'.format(environments[0].get('deployment_id')))
@@ -100,12 +105,13 @@ runs:
           with open('workflow_params.yaml', 'w') as outfile:
             yaml.dump(workflow_parms, outfile)
         else:
-          print ('::set-output name=exists::{0}'.format('false'))
+          dep_ids = [dep.get('deployment_id') for dep in environments]
+          raise Exception("Your name/labels may refer to these deployments {0} , please specify which one by using enviornemnt-id input".format(dep_ids))
           
     - name: Execute Terraform plan
       if: ${{ steps.check_if_deployment_exists.outputs.exists != 'true' }}
       id: terraform_plan
-      uses: ahmadiesa-abu/terraform-action@v1.1
+      uses: cloudify-cosmo/terraform-action@v1.2
       with:
           environment-name: ${{ inputs.environment-name }}
           module-file: ${{ inputs.module-file }}
@@ -118,7 +124,7 @@ runs:
     - name: Execute Terraform plan workflow
       if: ${{ steps.check_if_deployment_exists.outputs.exists == 'true' }}
       id: terraform_plan_wf
-      uses: cloudify-cosmo/execute-workflow-action@v1.1
+      uses: cloudify-cosmo/execute-workflow-action@v1.2
       with:
         environment-name: ${{ steps.check_if_deployment_exists.outputs.deployment_id }}
         workflow: "terraform_plan"
@@ -140,7 +146,7 @@ runs:
     
     - name: get cloud resource node instance id
       id: get_instance_id
-      uses: ahmadiesa-abu/cli-action@v1.0.1
+      uses: cloudify-cosmo/cli-action@v1.2
       with:
         command: node-instances list -d ${{ steps.check_if_deployment_exists.outputs.deployment_id || fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
 
@@ -155,7 +161,7 @@ runs:
     
     - name: get cloud resource instane runtime properties
       id: get_node_instance_runtime
-      uses: ahmadiesa-abu/cli-action@v1.0.1
+      uses: cloudify-cosmo/cli-action@v1.2
       with:
         command: node-instances get ${{ steps.format_node_list.outputs.instance-id }} --json
         
