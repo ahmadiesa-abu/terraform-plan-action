@@ -94,7 +94,6 @@ runs:
             'source_path': "${{ inputs.module-source-path }}",
             'variables': variables,
             'environment_variables': environment_variables,
-            'force': True,
           }
           with open('workflow_params.yaml', 'w') as outfile:
             yaml.dump(workflow_parms, outfile)
