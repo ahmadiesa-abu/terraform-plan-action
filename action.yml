@@ -151,12 +151,30 @@ runs:
         content="${content//$'\r'/'%0D'}"
         # end of optional handling for multi line json
         echo "::set-output name=packageJson::$content"
+        
+    - name: get cloud resource node id
+      id: get_node_ids
+      uses: cloudify-cosmo/cli-action@v1.2
+      with:
+        command: nodes list -d ${{ steps.check_if_deployment_exists.outputs.deployment_id || fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} --json
+        
+    - name: parse node_ids
+      id: get_node_id
+      shell: python
+      run: |
+        import json
+        cli_output = ${{steps.get_node_ids.outputs.cli-output}}  
+        nodes = json.loads(cli_output)
+        for node in nodes:
+          if node.get('type')=='cloudify.nodes.terraform.Module':
+            print ('::set-output name=node_id::{0}'.format(node.id))
+            break
     
     - name: get cloud resource node instance id
       id: get_instance_id
       uses: cloudify-cosmo/cli-action@v1.2
       with:
-        command: node-instances list -d ${{ steps.check_if_deployment_exists.outputs.deployment_id || fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n terraform_module --json
+        command: node-instances list -d ${{ steps.check_if_deployment_exists.outputs.deployment_id || fromJson(steps.get_deployment_id.outputs.packageJson).deployment_id}} -n ${{steps.get_node_id.outputs.node_id}} --json
 
     - id: format_node_list
       name: format command output
