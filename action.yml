@@ -167,7 +167,7 @@ runs:
         nodes = json.loads(cli_output)
         for node in nodes:
           if node.get('type')=='cloudify.nodes.terraform.Module':
-            print ('::set-output name=node_id::{0}'.format(node.id))
+            print ('::set-output name=node_id::{0}'.format(node.get('id')))
             break
     
     - name: get cloud resource node instance id
