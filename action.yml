@@ -88,9 +88,9 @@ runs:
           else:
             environment_variables = ''
             
-          source_path = ''
-          if source_path not in ['', '-']:
-            source_path = "${{ inputs.module-source-path }}"
+          source_path = "${{ inputs.module-source-path }}"
+          if source_path in ['', '-']:
+            source_path = '.'
 
           workflow_parms = {
             'node_ids': [],
