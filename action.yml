@@ -87,11 +87,15 @@ runs:
               environment_variables = json.loads(environment_variables)
           else:
             environment_variables = ''
+            
+          source_path = ''
+          if source_path not in ['', '-']:
+            source_path = "${{ inputs.module-source-path }}"
 
           workflow_parms = {
             'node_ids': [],
             'source': "${{ inputs.module-file }}",
-            'source_path': "${{ inputs.module-source-path }}",
+            'source_path': source_path,
             'variables': variables,
             'environment_variables': environment_variables,
           }
